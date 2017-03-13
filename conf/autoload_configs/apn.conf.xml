@@ -1,0 +1,26 @@
+<configuration name="apn.conf" description="Configuration APN Service">
+  <settings>
+	<param name="odbc_dsn" value="pgsql://hostaddr=$${odbc_host} dbname=$${odbc_db} user=$${odbc_user} password=$${odbc_pass}" />
+	<param name="voip_app" value="com.carusto.mobile.app"/>
+	<param name="debug" value="false" />
+  </settings>
+
+  <profiles>
+	<profile name="com.carusto.mobile.app-voip">
+	  <param name="id" value="0"/>
+	  <param name="cert" value="/ect/freeswitch/certs/PushVoipCert.pem"/>
+          <param name="key" value="/ect/freeswitch/certs/PushVoipKey.pem"/>
+	  <param name="password" value="XXXXX"/>
+	  <param name="sandbox" value="true"/>
+  	</profile>
+        
+	<profile name="com.carusto.mobile.app-im">
+          <param name="id" value="1"/>
+          <param name="cert" value="/ect/freeswitch/certs/PushUserCert.pem"/>
+	  <param name="key" value="/ect/freeswitch/certs/PushUserKey.pem"/>
+          <param name="password" value="XXXXX"/>
+          <param name="sandbox" value="true"/>
+        </profile>
+  </profiles>
+	
+</configuration>
