@@ -1,5 +1,5 @@
 # freeswitch-ApplePushNotification
-mod_apn: Apple push notifications module of VoIP telephony system [Freeswitch](http://freeswitch.org), used libcapn.<br>
+mod_apn: Apple push notifications module of VoIP telephony system [Freeswitch](http://freeswitch.org)<br>
 libcapn: A simple C Library for interact with the Apple Push Notification Service (APNs) [libcapn](http://libcapn.org)
 ## Dependencies
 ```
@@ -75,6 +75,16 @@ In case User 101 have incoming call endpoint apn_wait send notification to Apple
 `app_id`: string value with Apple application id
 #### body
 JSON object with payload data
+`body` - type string<br>
+`barge` - type integer<br>
+`sound` - type string<br>
+`content_available` - type boolean<br>
+`action_key` - type string<br>
+`image` - type string<br>
+`category` - type string<br>
+`custom` - array of objects, with custom values.<br>
+Available types of value for custom data: string, integer, double, boolean, null
+
 #### Example
 ```sh
 Event-Name: CUSTOM
