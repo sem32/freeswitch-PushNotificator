@@ -862,7 +862,6 @@ static void register_event_handler(switch_event_t *event)
 {
     char *event_user = NULL, *event_realm = NULL, *event_contact = NULL;
     char *contact_ptr = NULL, *voip_token = NULL, *im_token = NULL, *foo = NULL, *query = NULL, *app_id = NULL;
-    char voip_count[2] = {0, }, im_count[2] = {0, };
     char *update_reg = NULL;
 
 	update_reg = switch_event_get_header(event, "update-reg");
@@ -927,37 +926,41 @@ static void register_event_handler(switch_event_t *event)
         goto end;
     }
 
-    switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "CARUSTO. Got REGISTER with contact: %s and token (VoIP): '%s', token (IM): '%s'\n", contact_ptr, voip_token ? voip_token : "", im_token ? im_token : "");
-
     /*Check existing VoIP token*/
-    if (zstr(voip_token)) {
+    if (!zstr(voip_token)) {
+		char voip_count[2] = {0, };
 		query = switch_mprintf("SELECT count(*) FROM apple_tokens WHERE token = '%q' AND extension = '%q' AND realm = '%q' AND app_id = '%q' AND type = 'voip'", voip_token, event_user, event_realm, app_id);
 		mod_apn_execute_sql2str(query, voip_count, sizeof(voip_count));
 		switch_safe_free(query);
+
+		if (!zstr(voip_count) && atoi(voip_count) <= 0) {
+			/*Add new VoIP token to DB*/
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "CARUSTO. Add new VoIP token: '%s' to apple_tokens for user %s@%s and application: %s\n", voip_token, event_user, event_realm, app_id);
+			query = switch_mprintf("INSERT INTO apple_tokens (token, extension, realm, app_id, type) VALUES ('%q', '%q', '%q', '%q', 'voip')", voip_token, event_user, event_realm, app_id);
+			execute_sql_now(&query);
+			switch_safe_free(query);
+		} else {
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "CARUSTO. VoIP token: '%s' for user %s@%s and application: %s already exists\n", voip_token, event_user, event_realm, app_id);
+		}
     }
 
     /*Check existing IM token*/
-    if (zstr(im_token)) {
+    if (!zstr(im_token)) {
+		char im_count[2] = {0, };
 		query = switch_mprintf("SELECT count(*) FROM apple_tokens WHERE token = '%q' AND extension = '%q' AND realm = '%q' AND app_id = '%q' AND type = 'im'", im_token, event_user, event_realm, app_id);
 		mod_apn_execute_sql2str(query, im_count, sizeof(im_count));
 		switch_safe_free(query);
+
+		if (!zstr(im_count) && atoi(im_count) <= 0) {
+			/*Add new IM token to DB*/
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "CARUSTO. Add new IM token: '%s' to apple_tokens for user %s@%s and application: %s\n", im_token, event_user, event_realm, app_id);
+			query = switch_mprintf("INSERT INTO apple_tokens (token, extension, realm, app_id, type) VALUES ('%q', '%q', '%q', '%q', 'im')", im_token, event_user, event_realm, app_id);
+			execute_sql_now(&query);
+			switch_safe_free(query);
+		} else {
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "CARUSTO. IM token: '%s' for user %s@%s and application: %s already exists\n", im_token, event_user, event_realm, app_id);
+		}
     }
-
-	if (!zstr(voip_count) && atoi(voip_count) <= 0) {
-		/*Add new VoIP token to DB*/
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "CARUSTO. Add new VoIP token: '%s' to apple_tokens\n", voip_token);
-		query = switch_mprintf("INSERT INTO apple_tokens (token, extension, realm, app_id, type) VALUES ('%q', '%q', '%q', '%q', 'voip')", voip_token, event_user, event_realm, app_id);
-		execute_sql_now(&query);
-		switch_safe_free(query);
-	}
-
-	if (!zstr(im_count) && atoi(im_count) <= 0) {
-		/*Add new IM token to DB*/
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "CARUSTO. Add new IM token: '%s' to apple_tokens\n", im_token);
-		query = switch_mprintf("INSERT INTO apple_tokens (token, extension, realm, app_id, type) VALUES ('%q', '%q', '%q', '%q', 'im')", im_token, event_user, event_realm, app_id);
-		execute_sql_now(&query);
-		switch_safe_free(query);
-	}
 
 end:
 	switch_safe_free(contact_ptr);
