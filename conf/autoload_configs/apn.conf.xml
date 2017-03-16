@@ -1,12 +1,15 @@
 <configuration name="apn.conf" description="Configuration APN Service">
   <settings>
-	<param name="odbc_dsn" value="pgsql://hostaddr=$${odbc_host} dbname=$${odbc_db} user=$${odbc_user} password=$${odbc_pass}" />
-	<param name="voip_app" value="com.carusto.mobile.app"/>
-	<param name="debug" value="false" />
+	  <param name="odbc_dsn" value="pgsql://hostaddr=$${odbc_host} dbname=$${odbc_db} user=$${odbc_user} password=$${odbc_pass}" />
+	  <param name="voip_app_id" value="com.company.some.app"/>
+	  <param name="contact_voip_token_param" value="pn-voip-tok"/>
+	  <param name="contact_im_token_param" value="pn-im-tok"/>
+	  <param name="contact_app_id_param" value="app-id"/>
+	  <param name="debug" value="false" />
   </settings>
 
   <profiles>
-	<profile name="com.carusto.mobile.app-voip">
+	<profile name="com.company.some.app-voip">
 	  <param name="id" value="0"/>
 	  <param name="cert" value="/ect/freeswitch/certs/PushVoipCert.pem"/>
           <param name="key" value="/ect/freeswitch/certs/PushVoipKey.pem"/>
@@ -14,7 +17,7 @@
 	  <param name="sandbox" value="true"/>
   	</profile>
         
-	<profile name="com.carusto.mobile.app-im">
+	<profile name="com.company.some.app-im">
           <param name="id" value="1"/>
           <param name="cert" value="/ect/freeswitch/certs/PushUserCert.pem"/>
 	  <param name="key" value="/ect/freeswitch/certs/PushUserKey.pem"/>

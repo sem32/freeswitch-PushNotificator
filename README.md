@@ -1,6 +1,7 @@
 # freeswitch-ApplePushNotification
-mod_apn: Apple push notifications module of VoIP telephony system [Freeswitch](http://freeswitch.org)<br>
-libcapn: A simple C Library for interact with the Apple Push Notification Service (APNs) [libcapn](http://libcapn.org)
+mod_apn: Apple push notifications module of VoIP telephony system [Freeswitch](http://freeswitch.org), based on [libcapn](http://libcapn.org)<br>
+Module APN send a push message to an iOS device, when the device is the target of a bridge call and is not registered, so that the device can "wake up", register and receive the call.<br>
+Endpoint `apn_wait` push notification, listens for `sofia::register` event and generate call when receive new register message from target device.
 ## Dependencies
 ```
 cmake, make, openssl-devel
@@ -18,7 +19,7 @@ echo 'endpoints/mod_apn' >> modules.conf
 # Add to configure.ac configuration for create Makefile for mod_apn (AC_CONFIG_FILES array section)
 $ sed -i '/src\/mod\/endpoints\/mod_sofia\/Makefile/a src\/mod\/endpoints\/mod_apn\/Makefile' configure.ac
 $ ./configure
-$ make 
+$ make
 $ make install
 ```
 ## Configuration
@@ -42,7 +43,7 @@ Change your dial-string user's parameter for use endpoint app_wait
     <params>
 	  <!--...-->
 	  <param name="dial-string" value="${sofia_contact(${dialed_user}@${dialed_domain})}:_:apn_wait/${dialed_user}@${dialed_domain}"/>
-	  <!--...-->     
+	  <!--...-->
     </params>
     <variables>
 	<!--...-->
@@ -85,8 +86,27 @@ JSON object with payload data
 `custom` - array of objects, with custom values.<br>
 Available types of value for custom data: string, integer, double, boolean, null
 
-#### Example
-```sh
+#### Examples
+##### SIP REGISTER message from iOS device
+```
+   REGISTER sip:local.carusto.com SIP/2.0
+   Via: SIP/2.0/TCP 192.168.31.100:64503;rport;branch=z9hG4bKPjCopvkuNIv-OvRw5doGAOdEiyTYaSyd1W;alias
+   Max-Forwards: 70
+   From: <sip:101@local.carusto.com>;tag=nyxukpmU0h21yUHcowgbUJs3pqXrOzS6
+   To: <sip:101@local.carusto.com>
+   Call-ID: CDSaFEyhUvnJARMfMLS.UF6Jkv8PJ6lq
+   CSeq: 48438 REGISTER
+   Supported: outbound, path
+   Contact: <sip:101@192.168.31.100:64503;transport=TCP;app-id=com.carusto.mobile.app;pn-voip-tok=39f161b205281f890715e625a7093d90af2fa281a7fcda82a7267f93d4b73df1;ob>;reg-id=1;+sip.instance="<urn:uuid:00000000-0000-0000-0000-0000d2b7e3b3>"```
+   Expires: 600
+   Allow: PRACK, INVITE, ACK, BYE, CANCEL, UPDATE, INFO, SUBSCRIBE, NOTIFY, REFER, MESSAGE, OPTIONS
+   Authorization: Digest username="101", realm="local.carusto.com", nonce="16472563-0102-11e7-b187-b112d280470a", uri="sip:local.carusto.com", response="6c53edfe29129b45a57664a3875de0c9", algorithm=MD5, cnonce="PqC351P2x33H2v4m95FoOAXQDxP9ap91", qop=auth, nc=00000001
+   Content-Length:  0
+
+```
+
+##### Event for mod_apn
+```
 Event-Name: CUSTOM
 Event-Subclass: apple::push::notification
 type: voip
@@ -98,8 +118,7 @@ app_id: com.carusto.mobile.app
   "barge":1,
   "body":"Body message",
   "sound":"default",
-  "content_available":true,
-  "action_key":"1",
+  "content-available":true,
   "image":"test image",
   "category":"VOIP",
   "custom":[
@@ -113,9 +132,9 @@ app_id: com.carusto.mobile.app
   ]
 }
 ```
-### From cli/api command to existing token(s) (for debug and test)
+### From cli/api command to existing token(s)
 ```sh
-$ fs_cli -x 'apn {"app_id":"com.carusto.mobile.app","type":"voip","payload":{"barge":1,"body":"test","sound":"default","content_available":true,"custom":[{"name":"integer","value":1},{"name":"string","value":"test"},{"name":"double","value":1.2}],"image":"my image","category":"VoIP"},"tokens":["XXXXXX","YYYYYYYY]}'
+$ fs_cli -x 'apn {"app_id":"com.carusto.mobile.app","type":"voip","payload":{"barge":1,"body":"test","sound":"default","content-available":true,"custom":[{"name":"integer","value":1},{"name":"string","value":"test"},{"name":"double","value":1.2}],"image":"my image","category":"VoIP"},"tokens":["XXXXXX","YYYYYYYY]}'
 ```
 or
 ```sh
@@ -124,5 +143,5 @@ $ fs_cli -x 'apn {"app_id":"com.carusto.mobile.app","type":"im","payload":{"body
 ## Debug
 Change debug parameter in /etc/freeswitch/autoload_configs/apn.conf.xml to true
 ```sh
-fs_cli -x 'reload mod_apn'
+$ fs_cli -x 'reload mod_apn'
 ```
