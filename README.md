@@ -97,7 +97,7 @@ Available types of value for custom data: string, integer, double, boolean, null
    Call-ID: CDSaFEyhUvnJARMfMLS.UF6Jkv8PJ6lq
    CSeq: 48438 REGISTER
    Supported: outbound, path
-   Contact: <sip:101@192.168.31.100:64503;transport=TCP;app-id=com.carusto.mobile.app;pn-voip-tok=39f161b205281f890715e625a7093d90af2fa281a7fcda82a7267f93d4b73df1;ob>;reg-id=1;+sip.instance="<urn:uuid:00000000-0000-0000-0000-0000d2b7e3b3>"```
+   Contact: <sip:101@192.168.31.100:64503;transport=TCP;app-id=com.carusto.mobile.app;pn-voip-tok=39f161b205281f890715e625a7093d90af2fa281a7fcda82a7267f93d4b73df1;ob>;reg-id=1;+sip.instance="<urn:uuid:00000000-0000-0000-0000-0000d2b7e3b3>"
    Expires: 600
    Allow: PRACK, INVITE, ACK, BYE, CANCEL, UPDATE, INFO, SUBSCRIBE, NOTIFY, REFER, MESSAGE, OPTIONS
    Authorization: Digest username="101", realm="local.carusto.com", nonce="16472563-0102-11e7-b187-b112d280470a", uri="sip:local.carusto.com", response="6c53edfe29129b45a57664a3875de0c9", algorithm=MD5, cnonce="PqC351P2x33H2v4m95FoOAXQDxP9ap91", qop=auth, nc=00000001
@@ -145,3 +145,6 @@ Change debug parameter in /etc/freeswitch/autoload_configs/apn.conf.xml to true
 ```sh
 $ fs_cli -x 'reload mod_apn'
 ```
+
+## Important
+For production version, change `sandbox` parameter to `false` in apn.conf.xml
