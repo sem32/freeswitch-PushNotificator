@@ -66,6 +66,9 @@ struct __apn_payload_alert_t {
     char *loc_key;
     apn_array_t *loc_args;
     char *launch_image;
+    char *title;
+    char *title_loc_key;
+    apn_array_t *title_loc_args;
 };
 
 struct __apn_payload_t {

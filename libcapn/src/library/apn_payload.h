@@ -197,6 +197,19 @@ __apn_export__ apn_return apn_payload_set_launch_image(apn_payload_t *const payl
         __apn_attribute_nonnull__((1));
 
 /**
+ * Sets a name of a title in the application bundle.
+ *
+ * @param[in] payload - Pointer to an initialized `payload` structure. Cannot be NULL
+ * @param[in] title - A value of title
+ *
+ * @return
+ *      - ::APN_SUCCESS on success
+ *      - ::APN_ERROR on failure with error information stored to `errno`
+ */
+__apn_export__ apn_return apn_payload_set_title(apn_payload_t *const payload, const char *const title)
+        __apn_attribute_nonnull__((1));
+
+/**
  * Sets a key used to get a localized alert-message string and an array of strings
  * to appear in place of the format specifiers in `key`.
  *
@@ -213,6 +226,25 @@ __apn_export__ apn_return apn_payload_set_launch_image(apn_payload_t *const payl
  *      - ::APN_ERROR on failure with error information stored to `errno`
  */
 __apn_export__ apn_return apn_payload_set_localized_key(apn_payload_t *const payload, const char *const key, apn_array_t * const args)
+        __apn_attribute_nonnull__((1));
+
+/**
+ * Sets a key used to get a title localized alert-message string and an array of strings
+ * to appear in place of the format specifiers in `key`.
+ *
+ * The `key` string can be formatted with %@ and %n$@ specifiers to take the variables specified in `args`.
+ *
+ * @see <a href="http://developer.apple.com/library/mac/documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/ApplePushService/ApplePushService.html#//apple_ref/doc/uid/TP40008194-CH100-SW21">Localized Formatted Strings</a> for more information
+ *
+ * @param[in] payload - Pointer to an initialized `payload` structure. Cannot be NULL
+ * @param[in] key - Key of title localized string
+ * @param[in] args - Array of string values to appear in place of the format specifiers in `key`
+ *
+ * @return
+ *      - ::APN_SUCCESS on success
+ *      - ::APN_ERROR on failure with error information stored to `errno`
+ */
+__apn_export__ apn_return apn_payload_set_title_localized_key(apn_payload_t *const payload, const char *const key, apn_array_t * const args)
         __apn_attribute_nonnull__((1));
 
 /**
@@ -388,6 +420,19 @@ __apn_export__ const char *apn_payload_sound(const apn_payload_t * const payload
  * The returned value is read-only and must not be modified or freed
  */
 __apn_export__ const char *apn_payload_launch_image(const apn_payload_t * const payload)
+        __apn_attribute_nonnull__((1))
+        __apn_attribute_warn_unused_result__;
+
+/**
+ * Returns a value of title.
+ *
+ * @param[in] payload - Pointer to an initialized `payload` structure. Cannot be NULL
+ *
+ * @return Pointer to NULL-terminated string or NULL if filename is not set
+ *
+ * The returned value is read-only and must not be modified or freed
+ */
+__apn_export__ const char *apn_payload_title(const apn_payload_t * const title)
         __apn_attribute_nonnull__((1))
         __apn_attribute_warn_unused_result__;
 

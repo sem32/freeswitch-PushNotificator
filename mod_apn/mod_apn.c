@@ -26,6 +26,7 @@ static struct {
     char *contact_voip_token_param;
     char *contact_im_token_param;
     char *contact_app_id_param;
+    int expire;
 } globals;
 
 struct profile_obj {
@@ -182,13 +183,50 @@ static apn_ctx_t *mod_apn_init_context_with_data(profile_t *profile)
     return context;
 }
 
+static apn_array_t *json_get_apn_array(cJSON *object)
+{
+    apn_array_t *array = NULL;
+    int size = 0, i;
+    cJSON *iterator = NULL;
+    char *element = NULL;
+
+    if (!object) {
+        switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "CARUSTO. No JSON object\n");
+        return NULL;
+    }
+
+    size = cJSON_GetArraySize(object);
+    if (size <= 0) {
+        return array;
+    }
+
+    array = apn_array_init(size, NULL, NULL);
+    if (!array) {
+        return NULL;
+    }
+
+    for (i = 0; i < size; i++) {
+        if ((iterator = cJSON_GetArrayItem(object, i)) == NULL) {
+            break;
+        }
+        if (iterator->type == cJSON_String && iterator->valuestring) {
+            element = iterator->valuestring;
+        }
+        if (!zstr(element)) {
+            apn_array_insert(array, element);
+        }
+    }
+
+    return array;
+}
+
 static apn_payload_t *init_payload_with_data(cJSON *payload_json)
 {
     apn_payload_t *payload = NULL;
     time_t time_now = 0;
-    const char *body = NULL, *sound = NULL, *action_key = NULL, *image = NULL, *category = NULL;
-    //    const char *localized_key = NULL;
-    cJSON *barge_json = NULL, *content_available_json = NULL, *custom = NULL, *iterator = NULL;
+    const char *body = NULL, *sound = NULL, *action_key = NULL, *image = NULL, *category = NULL, *title = NULL, *localized_key = NULL, *title_localized_key = NULL;
+    cJSON *barge_json = NULL, *content_available_json = NULL, *custom = NULL, *iterator = NULL, *localized_args_json = NULL, *title_localized_args_json = NULL;
+    apn_array_t *localized_args = NULL, *title_localized_args = NULL;
     int size = 0, i;
 
     if (!payload_json) {
@@ -202,10 +240,14 @@ static apn_payload_t *init_payload_with_data(cJSON *payload_json)
         return NULL;
     }
 
+    if (globals.expire > 0) {
+        apn_payload_set_expiry(payload, time_now + globals.expire);
+    }
+
     apn_payload_set_priority(payload, APN_NOTIFICATION_PRIORITY_HIGH);
 
     barge_json = cJSON_GetObjectItem(payload_json, "barge");
-    if (barge_json && barge_json->type == cJSON_Number && barge_json->valueint && barge_json->valueint > 0) {
+    if (barge_json && barge_json->type == cJSON_Number && barge_json->valueint && barge_json->valueint >= 0) {
         apn_payload_set_badge(payload, barge_json->valueint);
     }
 
@@ -236,6 +278,23 @@ static apn_payload_t *init_payload_with_data(cJSON *payload_json)
     image = cJSON_GetObjectCstr(payload_json, "image");
     if (!zstr(image)) {
         apn_payload_set_launch_image(payload, image);
+    }
+
+    title = cJSON_GetObjectCstr(payload_json, "title");
+    if (!zstr(title)) {
+        apn_payload_set_title(payload, title);
+    }
+
+    localized_key = cJSON_GetObjectCstr(payload_json, "localized_key");
+    localized_args_json = cJSON_GetObjectItem(payload_json, "localized_args");
+    if (!zstr(localized_key) && localized_args_json && (localized_args = json_get_apn_array(localized_args_json))) {
+        apn_payload_set_localized_key(payload, localized_key, localized_args);
+    }
+
+    title_localized_key = cJSON_GetObjectCstr(payload_json, "title_localized_key");
+    title_localized_args_json = cJSON_GetObjectItem(payload_json, "title_localized_args");
+    if (!zstr(title_localized_key) && title_localized_args_json && (title_localized_args = json_get_apn_array(title_localized_args_json))) {
+        apn_payload_set_title_localized_key(payload, title_localized_key, title_localized_args);
     }
 
     category = cJSON_GetObjectCstr(payload_json, "category");
@@ -272,43 +331,6 @@ static apn_payload_t *init_payload_with_data(cJSON *payload_json)
     }
 
     return payload;
-}
-
-static apn_array_t *json_get_tokens_array(cJSON *tokens_json)
-{
-    apn_array_t *tokens = NULL;
-    int size = 0, i;
-    cJSON *iterator = NULL;
-    char *token = NULL;
-
-    if (!tokens_json) {
-        switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "CARUSTO. No tokens JSON object\n");
-        return NULL;
-    }
-
-    size = cJSON_GetArraySize(tokens_json);
-    if (size <= 0) {
-        return tokens;
-    }
-
-    tokens = apn_array_init(size, NULL, NULL);
-    if (!tokens) {
-        return NULL;
-    }
-
-    for (i = 0; i < size; i++) {
-        if ((iterator = cJSON_GetArrayItem(tokens_json, i)) == NULL) {
-            break;
-        }
-        if (iterator->type == cJSON_String && iterator->valuestring) {
-            token = iterator->valuestring;
-        }
-        if (!zstr(token)) {
-            apn_array_insert(tokens, token);
-        }
-    }
-
-    return tokens;
 }
 
 static switch_bool_t mod_apn_send(profile_t *profile, apn_payload_t *payload, apn_array_t *tokens, int handle_invalid_tokens)
@@ -479,7 +501,7 @@ SWITCH_STANDARD_API(apn_api_function)
     }
 
     payload = init_payload_with_data(cJSON_GetObjectItem(root, "payload"));
-    tokens = json_get_tokens_array(cJSON_GetObjectItem(root, "tokens"));
+    tokens = json_get_apn_array(cJSON_GetObjectItem(root, "tokens"));
 
     res = mod_apn_send(profile, payload, tokens, SWITCH_FALSE);
 
@@ -551,6 +573,8 @@ static switch_status_t do_config(switch_memory_pool_t *pool)
                 globals.contact_im_token_param = switch_core_strdup(globals.pool, val);
             } else if (!strcasecmp(var, "contact_app_id_param") && !zstr(val)) {
                 globals.contact_app_id_param = switch_core_strdup(globals.pool, val);
+            } else if (!strcasecmp(var, "payload_expire") && !zstr(val)) {
+                globals.expire = atoi(val);
             }
         }
     }
@@ -629,7 +653,7 @@ static switch_status_t do_config(switch_memory_pool_t *pool)
                 profile->name = switch_core_strdup(globals.pool, name);
 
                 if (!zstr(id_s)) {
-                profile->id = (uint16_t)atoi(id_s);
+                    profile->id = (uint16_t)atoi(id_s);
                 }
                 profile->path_p12 = !zstr(path_p12) ? switch_core_strdup(globals.pool, path_p12) : NULL;
                 profile->path_cert = !zstr(path_cert) ? switch_core_strdup(globals.pool, path_cert) : NULL;

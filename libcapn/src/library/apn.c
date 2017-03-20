@@ -28,7 +28,7 @@
 #include "apn_strings.h"
 #include "apn_tokens.h"
 #include "apn_version.h"
-#include "apn_paload_private.h"
+#include "apn_payload_private.h"
 #include "apn_private.h"
 #include "apn_binary_message_private.h"
 #include "apn_array_private.h"

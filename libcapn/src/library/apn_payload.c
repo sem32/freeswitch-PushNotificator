@@ -29,7 +29,7 @@
 #include "apn_memory.h"
 #include "apn_private.h"
 #include "apn_array.h"
-#include "apn_paload_private.h"
+#include "apn_payload_private.h"
 #include "apn_binary_message_private.h"
 #include "apn_log.h"
 
@@ -82,6 +82,9 @@ void apn_payload_free(apn_payload_t *payload) {
             apn_mem_free(payload->alert->launch_image);
             apn_mem_free(payload->alert->loc_key);
             apn_array_free(payload->alert->loc_args);
+            apn_mem_free(payload->alert->title);
+            apn_mem_free(payload->alert->title_loc_key);
+            apn_array_free(payload->alert->title_loc_args);
             free(payload->alert);
         }
         apn_mem_free(payload->sound);
@@ -167,8 +170,8 @@ apn_return apn_payload_set_localized_action_key(apn_payload_t *const payload, co
 
 apn_return apn_payload_set_launch_image(apn_payload_t *const payload, const char *const image) {
     assert(payload);
-    if (payload->alert->action_loc_key) {
-        apn_strfree(&payload->alert->action_loc_key);
+    if (payload->alert->launch_image) {
+        apn_strfree(&payload->alert->launch_image);
     }
     if (image && strlen(image)) {
         if ((payload->alert->launch_image = apn_strndup(image, strlen(image))) == NULL) {
@@ -178,6 +181,21 @@ apn_return apn_payload_set_launch_image(apn_payload_t *const payload, const char
     }
     return APN_SUCCESS;
 }
+
+apn_return apn_payload_set_title(apn_payload_t *const payload, const char *const title) {
+    assert(payload);
+    if (payload->alert->title) {
+        apn_strfree(&payload->alert->title);
+    }
+    if (title && strlen(title)) {
+        if ((payload->alert->title = apn_strndup(title, strlen(title))) == NULL) {
+            errno = ENOMEM;
+            return APN_ERROR;
+        }
+    }
+    return APN_SUCCESS;
+}
+
 
 apn_return apn_payload_set_localized_key(apn_payload_t *const payload, const char *const key, apn_array_t * const args) {
     assert(payload);
@@ -190,6 +208,20 @@ apn_return apn_payload_set_localized_key(apn_payload_t *const payload, const cha
 
     payload->alert->loc_key = apn_strndup(key, strlen(key));
     payload->alert->loc_args = apn_array_copy(args);
+    return APN_SUCCESS;
+}
+
+apn_return apn_payload_set_title_localized_key(apn_payload_t *const payload, const char *const key, apn_array_t * const args) {
+    assert(payload);
+    assert(key && strlen(key) > 0);
+
+    if (payload->alert->title_loc_key) {
+        apn_strfree(&payload->alert->title_loc_key);
+        apn_array_free(payload->alert->title_loc_args);
+    }
+
+    payload->alert->title_loc_key = apn_strndup(key, strlen(key));
+    payload->alert->title_loc_args = apn_array_copy(args);
     return APN_SUCCESS;
 }
 
@@ -350,6 +382,11 @@ const char *apn_payload_launch_image(const apn_payload_t *const payload) {
     return payload->alert->launch_image;
 }
 
+const char *apn_payload_title(const apn_payload_t *const payload) {
+    assert(payload);
+    return payload->alert->title;
+}
+
 const char *apn_payload_localized_action_key(const apn_payload_t *const payload) {
     assert(payload);
     return payload->alert->action_loc_key;
@@ -369,6 +406,17 @@ apn_array_t *apn_payload_localized_key_args(const apn_payload_t * const payload)
     assert(payload);
     return payload->alert->loc_args;
 }
+
+const char *apn_payload_title_localized_key(const apn_payload_t *const payload) {
+    assert(payload);
+    return payload->alert->title_loc_key;
+}
+
+apn_array_t *apn_payload_title_localized_key_args(const apn_payload_t * const payload) {
+    assert(payload);
+    return payload->alert->title_loc_args;
+}
+
 
 time_t apn_payload_expiry(const apn_payload_t *const payload) {
     assert(payload);
@@ -412,7 +460,7 @@ char *apn_create_json_document_from_payload(const apn_payload_t *const payload) 
     }
 
     if (!payload->alert->action_loc_key && !payload->alert->launch_image && !payload->alert->loc_args &&
-        !payload->alert->loc_key) {
+        !payload->alert->loc_key && !payload->alert->title && !payload->alert->title_loc_args && !payload->alert->title_loc_key) {
         json_object_set_new(aps, "alert", json_string(payload->alert->body));
     } else {
         alert = json_object();
@@ -422,6 +470,7 @@ char *apn_create_json_document_from_payload(const apn_payload_t *const payload) 
             errno = APN_ERR_PAYLOAD_COULD_NOT_CREATE_JSON_DOCUMENT;
             return NULL;
         }
+
         if (payload->alert->body) {
             json_object_set_new(alert, "body", json_string(payload->alert->body));
         }
@@ -444,6 +493,22 @@ char *apn_create_json_document_from_payload(const apn_payload_t *const payload) 
                 json_array_append(args, json_string(apn_array_item_at_index(payload->alert->loc_args, i)));
             }
             json_object_set_new(alert, "loc-args", args);
+        }
+
+        if (payload->alert->title) {
+            json_object_set_new(alert, "title", json_string(payload->alert->title));
+        }
+
+        if (payload->alert->title_loc_key) {
+            json_object_set_new(alert, "title-loc-key", json_string(payload->alert->title_loc_key));
+        }
+
+        if (payload->alert->title_loc_args) {
+            args = json_array();
+            for (i = 0; i < apn_array_count(payload->alert->title_loc_args); i++) {
+                json_array_append(args, json_string(apn_array_item_at_index(payload->alert->title_loc_args, i)));
+            }
+            json_object_set_new(alert, "title-loc-args", args);
         }
 
         json_object_set_new(aps, "alert", alert);
@@ -629,5 +694,8 @@ static apn_payload_alert_t *__apn_payload_alert_init() {
     alert->launch_image = NULL;
     alert->loc_args = NULL;
     alert->loc_key = NULL;
+    alert->title = NULL;
+    alert->title_loc_key = NULL;
+    alert->title_loc_args = NULL;
     return alert;
 }
