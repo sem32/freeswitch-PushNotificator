@@ -1053,7 +1053,7 @@ static switch_call_cause_t apn_wait_outgoing_channel(switch_core_session_t *sess
     char *user = NULL, *domain = NULL, *dup_domain = NULL;
     char *var_val = NULL;
     switch_event_t *event = NULL;
-    static switch_event_node_t *response_event = NULL, *register_event = NULL;
+    switch_event_node_t *response_event = NULL, *register_event = NULL;
     switch_channel_t *channel = NULL;
     switch_memory_pool_t *pool = NULL;
     char *cid_name_override = NULL, *cid_num_override = NULL;
@@ -1322,6 +1322,7 @@ SWITCH_MODULE_SHUTDOWN_FUNCTION(mod_apn_shutdown)
         switch_core_hash_destroy(&globals.profile_hash);
         globals.profile_hash = NULL;
     }
+
     if (globals.init_lib) {
         apn_library_free();
         globals.init_lib = 0;
