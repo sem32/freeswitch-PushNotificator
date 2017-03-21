@@ -261,7 +261,7 @@ static apn_payload_t *init_payload_with_data(cJSON *payload_json)
         apn_payload_set_sound(payload, sound);
     }
 
-    content_available_json = cJSON_GetObjectItem(payload_json, "content-available");
+    content_available_json = cJSON_GetObjectItem(payload_json, "content_available");
     if (content_available_json) {
         if (content_available_json->type == cJSON_True) {
             apn_payload_set_content_available(payload, 1);
@@ -1173,7 +1173,7 @@ static switch_call_cause_t apn_wait_outgoing_channel(switch_core_session_t *sess
             switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "app_id", globals.voip_app_id);
             switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "user", user);
             switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "realm", domain);
-            switch_event_add_body(event, "{\"content-available\":true,\"custom\":[{\"name\":\"content-message\",\"value\":\"incomming call\"}]}");
+            switch_event_add_body(event, "{\"title\":\"Incomming call\",\"custom\":[{\"name\":\"content-message\",\"value\":\"incomming call\"}]}");
             switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "CARUSTO. Fire event APN for User: %s@%s\n", user, domain);
             switch_event_fire(&event);
             switch_event_destroy(&event);

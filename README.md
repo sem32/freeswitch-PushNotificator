@@ -1,7 +1,7 @@
 # freeswitch-ApplePushNotification
 mod_apn: Apple push notifications module of VoIP telephony system [Freeswitch](http://freeswitch.org), based on [libcapn](http://libcapn.org)<br>
 Module APN send a push message to an iOS device, when the device is the target of a bridge call and is not registered, so that the device can "wake up", register and receive the call.<br>
-Endpoint `apn_wait` push notification, listens for `sofia::register` event and generate call when receive new register message from target device.
+Endpoint `apn_wait` send push notification to Apple, listens for `sofia::register` event and originate call when receive new SIP register message from target device.
 ## Dependencies
 ```
 cmake, make, openssl-devel
@@ -36,7 +36,7 @@ Change apn.conf.xml with your password, profile name to your apple application i
 $ cp /usr/src/ApplePushNotification/conf/autoload_configs/apn.conf.xml /etc/freeswitch/autoload_configs/
 $ cp ./PushVoipCert.pem ./PushVoipKey.pem /ect/freeswitch/certs/
 ```
-Change your dial-string user's parameter for use endpoint app_wait
+Change your dial-string user's parameter for use endpoint `app_wait`
 ```xml
 <include>
   <user id="101">
@@ -49,7 +49,7 @@ Change your dial-string user's parameter for use endpoint app_wait
 	<!--...-->
     </variables>
   </user>
-</include>}"/>
+</include>
 ```
 ## Auto load
 ```sh
@@ -65,7 +65,7 @@ iOS application sent SIP registration with custom contact parameters:
 Contact: "101" <sip:101@192.168.31.100:56568;app-id=****;pn-voip-tok=XXXXXXXXX;pn-im-tok=XXXXXXXXXX>
 ```
 Module use parameters for create database record with Apple Push Notification tokens.
-In case User 101 have incoming call endpoint apn_wait send notification to Apple with token ID and wait for incoming register message from current user. In case got REGISTER, module make originate call to User 101.
+In case User 101 have incoming call endpoint `apn_wait` send notification to Apple with token ID and wait for incoming register message from current user. In case got SIP REGISTER message, module originate call to User 101.
 
 ## Send notification
 ### From event
@@ -76,14 +76,19 @@ In case User 101 have incoming call endpoint apn_wait send notification to Apple
 `app_id`: string value with Apple application id
 #### body
 JSON object with payload data
-`body` - type string<br>
-`barge` - type integer<br>
-`sound` - type string<br>
-`content_available` - type boolean<br>
-`action_key` - type string<br>
-`image` - type string<br>
-`category` - type string<br>
-`custom` - array of objects, with custom values.<br>
+`body` - string valueg<br>
+`barge` - integer value<br>
+`sound` - string value<br>
+`content_available` - boolean value<br>
+`action_key` - string value<br>
+`image` - string value<br>
+`category` - string value<br>
+`title` - string value<br>
+`localized_key` - string value<br>
+`localized_args` - json array with string elements<br>
+`title_localized_key` - string value<br>
+`title_localized_args` - json array with string elements<br>
+`custom` - array of json objects, with custom values<br>
 Available types of value for custom data: string, integer, double, boolean, null
 
 #### Examples
