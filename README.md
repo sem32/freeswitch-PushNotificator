@@ -118,9 +118,10 @@ app_id: com.carusto.mobile.app
   "barge":1,
   "body":"Body message",
   "sound":"default",
-  "content-available":true,
-  "image":"test image",
+  "content_available":true,
+  "image":"image.png",
   "category":"VOIP",
+  "title":"Some title",
   "custom":[
     {
       "name":"Custom string variable",
@@ -134,7 +135,7 @@ app_id: com.carusto.mobile.app
 ```
 ### From cli/api command to existing token(s)
 ```sh
-$ fs_cli -x 'apn {"app_id":"com.carusto.mobile.app","type":"voip","payload":{"barge":1,"body":"test","sound":"default","content-available":true,"custom":[{"name":"integer","value":1},{"name":"string","value":"test"},{"name":"double","value":1.2}],"image":"my image","category":"VoIP"},"tokens":["XXXXXX","YYYYYYYY]}'
+$ fs_cli -x 'apn {"app_id":"com.carusto.mobile.app","type":"voip","payload":{"barge":1,"body":"test","sound":"default","content_available":true,"custom":[{"name":"integer","value":1},{"name":"string","value":"test"},{"name":"double","value":1.2}],"image":"my image","category":"VoIP"},"tokens":["XXXXXX","YYYYYYYY]}'
 ```
 or
 ```sh
