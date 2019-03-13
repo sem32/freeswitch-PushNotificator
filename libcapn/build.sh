@@ -8,7 +8,9 @@ fi
 
 mkdir -p build
 cd build
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${LIB_APN_PREFIX}/ ../
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${LIB_APN_PREFIX}/ ../libcapn
 make
 make install
 
+# fix for library path for some nix systems
+ln -sf ${LIB_APN_PREFIX}/lib64/capn ${LIB_APN_PREFIX}/lib/capn
