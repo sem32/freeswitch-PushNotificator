@@ -1,6 +1,7 @@
 #include <switch.h>
 #include <switch_types.h>
 #include <switch_core.h>
+#include <switch_version.h>
 
 #include <capn/apn.h>
 #include <capn/apn_array.h>
@@ -8,6 +9,10 @@
 SWITCH_MODULE_LOAD_FUNCTION(mod_apn_load);
 SWITCH_MODULE_SHUTDOWN_FUNCTION(mod_apn_shutdown);
 SWITCH_MODULE_DEFINITION(mod_apn, mod_apn_load, mod_apn_shutdown, NULL);
+
+int switch_version_int() {
+    return ((int)SWITCH_VERSION_MAJOR[0]) + ((int)SWITCH_VERSION_MINOR[0]);
+}
 
 static switch_event_node_t *register_event = NULL;
 static switch_event_node_t *push_event = NULL;
@@ -1218,9 +1223,15 @@ static switch_call_cause_t apn_wait_outgoing_channel(switch_core_session_t *sess
                 switch_event_unbind(&register_event);
                 register_event = NULL;
             }
+#if (switch_versiion_int() >= 18)
+            if (switch_ivr_originate(session, new_session, &cause, destination, current_timelimit, NULL,
+                                cid_name_override, cid_num_override, outbound_profile, var_event, flags,
+                                cancel_cause, NULL) == SWITCH_STATUS_SUCCESS) {
+#else
             if (switch_ivr_originate(session, new_session, &cause, destination, current_timelimit, NULL,
                                 cid_name_override, cid_num_override, outbound_profile, var_event, flags,
                                 cancel_cause) == SWITCH_STATUS_SUCCESS) {
+#endif
                 const char *context;
                 switch_caller_profile_t *cp;
                 switch_channel_t *new_channel = NULL;
