@@ -291,7 +291,7 @@ static int sql2str_callback(void *pArg, int argc, char **argv, char **columnName
 	}
 
 	if (!cbt->root) {
-		cbt->root = cJSON_CreateObject()
+		cbt->root = cJSON_CreateObject();
 	}
 	cbt->mached++;
 	platform = cJSON_GetObjectItem(cbt->root, argv[0]);
