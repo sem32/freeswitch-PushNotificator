@@ -62,7 +62,7 @@
 					${user}, - user extension number
 					${realm}, - Realm
 					${tokens}, - built string of tokens by `token_item_template`, separated by `token_items_separator`
-					${json_tokens}, - json tokens with format {"${platform}":{"${realm}":["${token}"]},...}
+					${json_tokens}, - json tokens with format {"${platform}":{"${app_id}":["${token}"]},...}
 					${json_payload} - json body of payload (cli command apn only)
 			-->
 			<param name="post_data_template" value="type=${type}&app_id=${app_id}&user=${user}&realm=${realm}&uuid=${uuid}&tokens=${tokens}&payload=${payload}&json_tokens=${json_tokens}&json_payload=${json_payload}"/>
