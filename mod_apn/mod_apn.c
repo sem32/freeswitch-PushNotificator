@@ -45,8 +45,6 @@ struct profile_obj {
 	char *method;
 	char *content_type;
 	char *post_data_template;
-	char *token_item_template;
-	char *token_items_separator;
 	int timeout;
 	int connect_timeout;
 	http_auth_t *auth;
@@ -54,11 +52,7 @@ struct profile_obj {
 typedef struct profile_obj profile_t;
 
 struct callback {
-	cJSON *root;
 	cJSON *array;
-	profile_t *profile;
-	unsigned int len;
-	unsigned int mached;
 };
 typedef struct callback callback_t;
 
@@ -272,10 +266,9 @@ end:
 static int sql2str_callback(void *pArg, int argc, char **argv, char **columnNames)
 {
 	callback_t *cbt = (callback_t *) pArg;
-	cJSON *platform = NULL, *app = NULL;
-	char *item = NULL;
+	cJSON *item = NULL;
 
-	if (!cbt || !cbt->profile) {
+	if (!cbt) {
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING, "Something wrong with callback structure\n");
 		return 0;
 	}
@@ -290,42 +283,12 @@ static int sql2str_callback(void *pArg, int argc, char **argv, char **columnName
 		return 0;
 	}
 
-	if (!cbt->root) {
-		cbt->root = cJSON_CreateObject();
-	}
-	cbt->mached++;
-	platform = cJSON_GetObjectItem(cbt->root, argv[0]);
-	if (!platform) {
-		platform = cJSON_CreateObject();
-		cJSON_AddItemToObject(cbt->root, argv[0], platform);
-	}
-	app = cJSON_GetObjectItem(platform, argv[1]);
-	if (!app) {
-		app = cJSON_CreateArray();
-		cJSON_AddItemToObject(platform, argv[1], app);
-	}
-	cJSON_AddItemToArray(app, cJSON_CreateString(argv[2]));
+	item = cJSON_CreateObject();
+	cJSON_AddItemToArray(cbt->array, item);
+	cJSON_AddItemToObject(item, "platform", cJSON_CreateString(argv[0]));
+	cJSON_AddItemToObject(item, "app_id", cJSON_CreateString(argv[1]));
+	cJSON_AddItemToObject(item, "token", cJSON_CreateString(argv[2]));
 
-	if (!zstr(cbt->profile->token_item_template)) {
-		switch_event_t *event = NULL;
-		if (switch_event_create(&event, SWITCH_EVENT_CUSTOM) != SWITCH_STATUS_SUCCESS) {
-			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING, "Can't create an event\n");
-			return 0;
-		}
-		if (!cbt->array) {
-			cbt->array = cJSON_CreateArray();
-		}
-		switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "platform", argv[0]);
-		switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "app_id", argv[1]);
-		switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "token", argv[2]);
-
-		item = switch_event_expand_headers(event, cbt->profile->token_item_template);
-		cbt->len += strlen(item);
-		cJSON_AddItemToArray(cbt->array, cJSON_CreateString(item));
-
-		switch_event_destroy(&event);
-		switch_safe_free(item);
-	}
 	return 0;
 }
 
@@ -512,8 +475,7 @@ static switch_status_t do_config(switch_memory_pool_t *pool)
 		for (x_profile = switch_xml_child(x_profiles, "profile"); x_profile; x_profile = x_profile->next) {
 			char *name = (char *) switch_xml_attr_soft(x_profile, "name");
 			char *id_s = NULL, *url = NULL, *method = NULL, *auth_type = NULL, *auth_data = NULL, *content_type = NULL,
-					*connect_timeout = NULL, *timeout = NULL, *post_data_template = NULL, *token_item_template = NULL,
-					*token_items_separator = NULL;
+					*connect_timeout = NULL, *timeout = NULL, *post_data_template = NULL;
 
 			for (param = switch_xml_child(x_profile, "param"); param; param = param->next) {
 				char *var, *val;
@@ -538,10 +500,6 @@ static switch_status_t do_config(switch_memory_pool_t *pool)
 					timeout = val;
 				} else if (!strcasecmp(var, "post_data_template") && !zstr(val)) {
 					post_data_template = val;
-				} else if (!strcasecmp(var, "token_item_template") && !zstr(val)) {
-					token_item_template = val;
-				} else if (!strcasecmp(var, "token_items_separator") && !zstr(val)) {
-					token_items_separator = val;
 				}
 			}
 
@@ -577,21 +535,13 @@ static switch_status_t do_config(switch_memory_pool_t *pool)
 				if (!zstr(timeout)) {
 					profile->timeout = (int)strtol(timeout, NULL, 10);
 				}
-				if (!zstr(token_item_template)) {
-					profile->token_item_template = switch_core_strdup(globals.pool, token_item_template);
-				}
-				if (!zstr(token_items_separator)) {
-					profile->token_items_separator = switch_core_strdup(globals.pool, token_items_separator);
-				} else {
-					profile->token_items_separator = switch_core_strdup(globals.pool, ";");
-				}
 				if (!zstr(post_data_template)) {
 					profile->post_data_template = switch_core_strdup(globals.pool, post_data_template);
 				} else {
 					profile->post_data_template = switch_core_strdup(globals.pool, "{\"type\": \"${type}\",\"app\":\"${app_id}\","
-																				   "\"tokens\":${json_tokens},\"user\":\"${user}\","
-																				   "\"realm\":\"${realm}\",\"uuid\":\"${uuid}\","
-																				   "\"payload\":${json_payload}}");
+																				   "\"token\":\"${token}\",\"user\":\"${user}\","
+																				   "\"realm\":\"${realm}\",\"payload\":${payload}"
+																				   "\"platform\":\"${platform}\"}");
 				}
 				profile->auth = parse_auth_param(auth_type, auth_data, globals.pool);
 				if (!zstr(content_type)) {
@@ -631,50 +581,27 @@ static void db_get_tokens_array(char *user, char *realm, char *type, callback_t 
 	switch_safe_free(query);
 }
 
-static char *get_tokens_data(cJSON *array, int len, char *token_items_separator)
+static void add_item_to_event(switch_event_t *event, char *name, cJSON *obj)
 {
-	int size, i;
-	size_t len_sep;
-	cJSON *iterator;
-	char *element = NULL, *ptr = NULL, *tokens_data = NULL;
-
-	if (!array || len <= 0 || !token_items_separator || ((len_sep = strlen(token_items_separator)) <= 0)) {
-		return NULL;
+	if (zstr(name) || !event || !obj) {
+		return;
 	}
 
-	size = cJSON_GetArraySize(array);
-
-	if (size <= 0) {
-		return NULL;
+	switch_event_del_header(event, name);
+	if (obj->type == cJSON_String && obj->valuestring && !zstr(obj->valuestring)) {
+		switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, name, obj->valuestring);
 	}
-
-	tokens_data = ptr = calloc(1, len + size * (strlen(token_items_separator)) + 1);
-	for (i = 0; i < size; i++) {
-		if ((iterator = cJSON_GetArrayItem(array, i)) == NULL) {
-			break;
-		}
-		if (iterator->type == cJSON_String && iterator->valuestring) {
-			element = iterator->valuestring;
-		}
-		if (!zstr(element)) {
-			if (i > 0) {
-				strcpy(ptr, token_items_separator);
-				ptr += len_sep;
-			}
-			strcpy(ptr, element);
-			ptr += strlen(element);
-		}
-	}
-	return tokens_data;
 }
 
 static void push_event_handler(switch_event_t *event)
 {
 	char *payload = NULL, *user = NULL, *realm = NULL, *type = NULL, *uuid = NULL, *json_tokens = NULL;
-	char *tokens_data = NULL;
 	profile_t *profile = NULL;
-	callback_t cbt = { NULL, NULL, NULL, 0, 0 };
+	callback_t cbt = { cJSON_CreateArray() };
 	switch_bool_t res = SWITCH_FALSE;
+	cJSON *iterator;
+	int size, i;
+	switch_event_t *res_event;
 
 	payload = switch_event_get_body(event);
 	type = switch_event_get_header(event, "type");
@@ -692,41 +619,38 @@ static void push_event_handler(switch_event_t *event)
 		goto end;
 	}
 
-	cbt.profile = profile;
-	cbt.mached = 0;
+	if (!zstr(payload)) {
+		switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "payload", payload);
+	}
+
 	db_get_tokens_array(user, realm, type, &cbt);
 
-	if (cbt.mached == 0) {
+	if ((size = cJSON_GetArraySize(cbt.array)) == 0) {
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "CARUSTO. No one token found for type: '%s', user: '%s', realm: '%s'\n", type, user, realm);
 		goto end;
 	}
 
-	json_tokens = cJSON_PrintUnformatted(cbt.root);
-	switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "json_tokens", json_tokens);
-	switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "json_payload", payload);
+	for (i = 0; i < size; i++) {
+		if ((iterator = cJSON_GetArrayItem(cbt.array, i)) == NULL) {
+			break;
+		}
+		add_item_to_event(event, "token", cJSON_GetObjectItem(iterator, "token"));
+		add_item_to_event(event, "app_id", cJSON_GetObjectItem(iterator, "app_id"));
+		add_item_to_event(event, "platform", cJSON_GetObjectItem(iterator, "platform"));
 
-	tokens_data = get_tokens_data(cbt.array, cbt.len, profile->token_items_separator);
-	if (tokens_data) {
-		switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "tokens", tokens_data);
+		res |= mod_apn_send(event, profile);
 	}
 
-	res = mod_apn_send(event, profile);
-
 end:
-	if (!zstr(uuid) && switch_event_create_subclass(&event, SWITCH_EVENT_CUSTOM, "mobile::push::response") == SWITCH_STATUS_SUCCESS) {
-		switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "uuid", uuid);
-		switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "response", res ? "sent" : "notsent");
+	if (!zstr(uuid) && switch_event_create_subclass(&res_event, SWITCH_EVENT_CUSTOM, "mobile::push::response") == SWITCH_STATUS_SUCCESS) {
+		switch_event_add_header_string(res_event, SWITCH_STACK_BOTTOM, "uuid", uuid);
+		switch_event_add_header_string(res_event, SWITCH_STACK_BOTTOM, "response", res ? "sent" : "notsent");
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "CARUSTO. Fire event mobile::push::response with ID: '%s' and result: '%s'\n", uuid, res ? "sent" : "notsent");
-		switch_event_fire(&event);
-		switch_event_destroy(&event);
+		switch_event_fire(&res_event);
+		switch_event_destroy(&res_event);
 	}
 
 	switch_safe_free(json_tokens);
-	switch_safe_free(tokens_data);
-
-	if (cbt.root) {
-		cJSON_Delete(cbt.root);
-	}
 
 	if (cbt.array) {
 		cJSON_Delete(cbt.array);
