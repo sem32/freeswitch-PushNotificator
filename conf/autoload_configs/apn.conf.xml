@@ -8,29 +8,31 @@
 			"realm			VARCHAR(255) NOT NULL,"
 			"app_id			VARCHAR(255) NOT NULL,"
 			"type			VARCHAR(255) NOT NULL,"
-			"platform	    VARCHAR(255) NOT NULL,"
-			"last_update    timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+			"platform		VARCHAR(255) NOT NULL,"
+			"last_update	timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,"
 			"CONSTRAINT push_tokens_pkey PRIMARY KEY (id)
 		)"
 		logic for expire tokens doesn't implemented yet.
 		 -->
 		<param name="odbc_dsn" value="pgsql://hostaddr=$${odbc_host} dbname=$${odbc_db} user=$${odbc_user} password=$${odbc_pass} options='-c client_min_messages=NOTICE'" />
 		<!-- Name of REGISTER contact parameter, which should contain VOIP token
-				value from contact parameter `contact_voip_token_param` will be stored to db with ${type}: `voip` and can be user as
+				value from contact parameter `contact_voip_token_param` will be stored to db with ${type}: `voip` and can be used as
 				${token} in `token_item_template`
 		-->
 		<param name="contact_voip_token_param" value="pn-voip-tok"/>
 		<!-- Name of REGISTER contact parameter, which should contain IM token
-				value from contact parameter `contact_im_token_param` will be stored to db with ${type}: `im` and can be user as
+				value from contact parameter `contact_im_token_param` will be stored to db with ${type}: `im` and can be used as
 				${token} in `token_item_template`
 		-->
 		<param name="contact_im_token_param" value="pn-im-tok"/>
 		<!-- Name of REGISTER contact parameter, which should contain application id
-				value from contact parameter `contact_app_id_param` will be stored to db and used as ${app_id} variable
+				value from contact parameter `contact_app_id_param` will be stored to db and can be used as
+				${app_id} in `token_item_template`
 		-->
 		<param name="contact_app_id_param" value="app-id"/>
 		<!-- Name of REGISTER contact parameter, which should contain platform
-				value from contact parameter `contact_app_id_param` will be used as ${platform} variable
+				value from contact parameter `contact_app_id_param` will be stored to db and can be used as
+				${platform} in `token_item_template`
 		-->
 		<param name="contact_platform_param" value="pn-platform"/>
 	</settings>
@@ -62,7 +64,7 @@
 					${user}, - user extension number
 					${realm}, - Realm
 					${tokens}, - built string of tokens by `token_item_template`, separated by `token_items_separator`
-					${json_tokens}, - json tokens with format {"${platform}":{"${app_id}":["${token}"]},...}
+					${json_tokens}, - builtin json string tokens with format: {"${platform}":{"${app_id}":["${token}"]},...}
 					${json_payload} - json body of payload (cli command apn only)
 			-->
 			<param name="post_data_template" value="type=${type}&app_id=${app_id}&user=${user}&realm=${realm}&uuid=${uuid}&tokens=${tokens}&payload=${payload}&json_tokens=${json_tokens}&json_payload=${json_payload}"/>
