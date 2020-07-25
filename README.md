@@ -1,8 +1,8 @@
 # Freeswitch PushNotification module
 mod_apn: Push notifications module of VoIP telephony system [Freeswitch](http://freeswitch.org)<br>
-Module APN listens for `sofia::register` event and parses `Contact` header from SIP REGISTER method and store all necessary information to db for use it later.<br>  
+Module APN listens to `sofia::register` event, parses `Contact` header from SIP REGISTER and store all necessary information to db.<br>  
 In case if Freeswitch generate a call to target, which has stored token(s), endpoint `apn_wait` send http request to push server (cloud based or server based) with all info regarding device (platform, push token and so on)<br>
-Listens for `sofia::register` event and originate call when receive new REGISTER SIP message from target device.
+Mod APN listens to `sofia::register` event and originate call when receive new REGISTER SIP message from target device.
 ## Dependencies
 ```
 libcurl
@@ -33,14 +33,14 @@ $ cp /usr/src/PushNotification/conf/autoload_configs/apn.conf.xml /etc/freeswitc
 <settings>
     <!-- Connection string to db. mod_apn will create table push_tokens with schema:
     "CREATE TABLE push_tokens ("
-        "id				serial NOT NULL,"
-        "token			VARCHAR(255) NOT NULL,"
-        "extension		VARCHAR(255) NOT NULL,"
-        "realm			VARCHAR(255) NOT NULL,"
-        "app_id			VARCHAR(255) NOT NULL,"
-        "type			VARCHAR(255) NOT NULL,"
-        "platform		VARCHAR(255) NOT NULL,"
-        "last_update	timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+        "id             serial NOT NULL,"
+        "token          VARCHAR(255) NOT NULL,"
+        "extension      VARCHAR(255) NOT NULL,"
+        "realm          VARCHAR(255) NOT NULL,"
+        "app_id         VARCHAR(255) NOT NULL,"
+        "type           VARCHAR(255) NOT NULL,"
+        "platform       VARCHAR(255) NOT NULL,"
+        "last_update    timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,"
         "CONSTRAINT push_tokens_pkey PRIMARY KEY (id)
     )"
     -->
@@ -146,9 +146,9 @@ Any platform devices (iOS based, Android based, browser based) application sent 
 ```
 Contact: "101" <sip:101@192.168.31.100:56568;app-id=****;pn-voip-tok=XXXXXXXXX;pn-im-tok=XXXXXXXXXX;pn-platform=iOS>
 ```
-Module use parameters for create database record with Push Notification tokens.
-In case if `User 101` has incoming call, endpoint `apn_wait` will send http request to push notification service with token ID and wait for incoming REGISTER request from current user.<br>
-In case got SIP REGISTER message, module originate call to `User 101`.
+Mod APN store to db tokens when parse `Contact` header from REGISTER<br>
+In case if Freeswitch will genarate to `User 101` a call, endpoint `apn_wait` will send http request to push notification service with token ID and wait for incoming REGISTER request from current user.<br>
+After receiving SIP REGISTER, module will originate INVITE to `User 101`.
 
 ## Send notification
 ### From event
