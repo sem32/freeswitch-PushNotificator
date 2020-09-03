@@ -40,7 +40,7 @@ $ cp /usr/src/PushNotification/conf/autoload_configs/apn.conf.xml /etc/freeswitc
         "app_id         VARCHAR(255) NOT NULL,"
         "type           VARCHAR(255) NOT NULL,"
         "platform       VARCHAR(255) NOT NULL,"
-        "last_update    timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+        "last_update    timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,"
         "CONSTRAINT push_tokens_pkey PRIMARY KEY (id)
     )"
     -->
