@@ -193,7 +193,7 @@ static int do_curl(switch_event_t *event, profile_t *profile)
 	switch_curl_easy_cleanup(curl_handle);
 	switch_curl_slist_free_all(headers);
 
-	switch_safe_free(query);
+	if (query != url_template) switch_safe_free(query);
 
 	return httpRes;
 }
@@ -829,7 +829,7 @@ static void register_event_handler(switch_event_t *event)
 		*foo = '\0';
 	}
 	if (platform && (foo = strchr(platform, ';')) != NULL) {
-		*platform = '\0';
+		*foo = '\0';
 	}
 
 	if (zstr(app_id) || (zstr(voip_token) && zstr(im_token)) || zstr(platform)) {
