@@ -155,7 +155,9 @@ static int do_curl(switch_event_t *event, profile_t *profile)
 							  post_data);
 			switch_curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, strlen(post_data));
 			switch_curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, (void *) post_data);
-			switch_safe_free(post_data);
+
+			if (post_data != profile->post_data_template)
+				switch_safe_free(post_data);
 		}
 		if (content_type) {
 			char *ct = switch_mprintf("Content-Type: %s", content_type);
