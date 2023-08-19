@@ -126,6 +126,7 @@ static int do_curl(switch_event_t *event, profile_t *profile)
 	int httpRes = 0;
 	switch_curl_slist_t *headers = NULL;
 	char *query = NULL;
+	char *post_data = NULL;
 
 	const char *url_template = profile->url;
 	const char *method = profile->method;
@@ -150,12 +151,11 @@ static int do_curl(switch_event_t *event, profile_t *profile)
 
 	if (!strcasecmp(method, "post")) {
 		if (!zstr(profile->post_data_template)) {
-			char *post_data = switch_event_expand_headers(event, profile->post_data_template);
+			post_data = switch_event_expand_headers(event, profile->post_data_template);
 			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "method: %s, url: %s, data: %s\n", method, query,
 							  post_data);
 			switch_curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, strlen(post_data));
 			switch_curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, (void *) post_data);
-			switch_safe_free(post_data);
 		}
 		if (content_type) {
 			char *ct = switch_mprintf("Content-Type: %s", content_type);
@@ -194,6 +194,7 @@ static int do_curl(switch_event_t *event, profile_t *profile)
 	switch_curl_slist_free_all(headers);
 
 	if (query != url_template) switch_safe_free(query);
+	if (post_data != profile->post_data_template) switch_safe_free(post_data);
 
 	return httpRes;
 }
